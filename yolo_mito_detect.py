@@ -5,6 +5,7 @@ import os
 from ultralytics import YOLO
 import torch
 import time
+import torchvision.transforms as transforms
 
 
 def yolo_mito_detect(device='0,1,2,3',
@@ -25,10 +26,13 @@ def yolo_mito_detect(device='0,1,2,3',
                 device=device, \
                 max_det=2000, \
                 stream=True)
+
+    transform = transforms.ToTensor()
+
     # Save Prediction results
     for result in results:
         # Generate a new generator every time call this function
-        yield result
+        yield (transform(result.orig_img), result.boxes.xyxy)
 
         # Save prediction results
         filename = os.path.splitext(os.path.basename(result.path))[0] + ".pt"
