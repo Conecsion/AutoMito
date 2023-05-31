@@ -12,7 +12,18 @@ import torch
 import matplotlib.pyplot as plt
 import itertools
 
+import sys
+from segment_anything import sam_model_registry, SamPredictor
+
+sam_checkpoint = "model/sam_vit_h_4b8939.pth"
+model_type = "vit_h"
+
 size = 512
+device = "cuda:0"
+
+sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
+sam.to(device=device)
+predictor = SamPredictor(sam)
 
 
 class GeneratorDataset(IterableDataset):
@@ -33,10 +44,11 @@ if __name__ == "__main__":
     #  plt.imshow(tensor)
     #  plt.show()
 
-my_dict = [
-    dict(
-        zip(("image", "boxes", "original_size"),
-            (transform(result.orig_img), result.boxes.xyxy,
-             transform(result.orig_img).shape[:3]))) for result in results
-]
-print(my_dict)
+    batched_input = [
+        dict(
+            zip(("image", "boxes", "original_size"),
+                (transform(result.orig_img).to(device), result.boxes.xyxy,
+                 transform(result.orig_img).shape[1:3]))) for result in results
+    ]
+
+    batched_output = sam(batched_input, multimask_output=False)
