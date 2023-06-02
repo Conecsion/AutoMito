@@ -27,15 +27,24 @@ predictor = SamPredictor(sam)
 
 class GeneratorDataset(IterableDataset):
 
-    def __init__(self, generator):
+    def __init__(self, generator, batch_size):
         self.generator = generator
+        self.batch_size = batch_size
 
     def __iter__(self):
-        return self.generator
+        batch = []
+        for x in self.generator:
+            batch.append(x)
+            if len(batch) == self.batch_size:
+                yield batch
+                batch = []
+        # yield the last incomplete batch if any
+        if batch:
+            yield batch
 
 
 def plot_tensor(tensor):
-    tensor = tensor.permute(1,2,0)
+    tensor = tensor.permute(1, 2, 0)
     plt.imshow(tensor)
     plt.show()
 
@@ -44,17 +53,13 @@ if __name__ == "__main__":
     crop(size)
     results = yolo_mito_detect('0', size, "model/yolo_mito.pt")
 
-    batched_input = [
-        dict(
-            zip(("image", "boxes", "original_size"),
-                (result[0].to("cuda"), result[1],
-                 result[0].shape[1:3]))) for result in results
-    ]
-    
+    #  batched_input = [
+    #  dict(
+    #  zip(("image", "boxes", "original_size"),
+    #  (result[0].to("cuda"), result[1],
+    #  result[0].shape[1:3]))) for result in results
+    #  ]
 
     #  batched_output = sam(batched_input, multimask_output=False)
 
-    BATCH_SIZE = 3
-    inf_dataloader = DataLoader(GeneratorDataset(results), batch_size=BATCH_SIZE, num_workers=64)
-    for batch in inf_dataloader:
-        print(batch[0])
+    BATCH_SIZE = 4

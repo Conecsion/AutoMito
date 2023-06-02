@@ -6,19 +6,20 @@ from ultralytics import YOLO
 import torch
 import time
 import torchvision.transforms as transforms
+import csv
 
 
 def yolo_mito_detect(device='0,1,2,3',
                      size=512,
                      yolo_model='model/yolo_mito.pt',
-                     input='output/cropped_images/*.tif',
-                     output="output/YOLO_prediction"):
-    os.makedirs(output, exist_ok=True)
+                     input_dir='output/cropped_images',
+                     output_dir="output/YOLO_prediction"):
+    os.makedirs(output_dir, exist_ok=True)
     print("---------------YOLO OBJECT DETECTING---------------")
     time.sleep(2)
 
     model = YOLO(yolo_model)
-    results = model.predict(source=input, \
+    results = model.predict(source=input_dir, \
                 conf=0.4, \
                 line_width=1, \
                 show_labels=False, \
@@ -28,19 +29,23 @@ def yolo_mito_detect(device='0,1,2,3',
                 stream=True)
 
     transform = transforms.ToTensor()
+    with open(os.path.join(output_dir, "yolo_prediction.csv"), "w",
+              newline="") as f:
+        writer = csv.writer(f)
 
-    # Save Prediction results
-    for result in results:
-        # Generate a new generator every time call this function
-        yield (transform(result.orig_img), result.boxes.xyxy)
-
-        # Save prediction results
-        filename = os.path.splitext(os.path.basename(result.path))[0] + ".pt"
-        filename = os.path.join(output, filename)
-        #  print(result.boxes.xyxy)
-        if os.path.isfile(filename):
-            continue
-        else:
-            torch.save(result.boxes.xyxy, filename)
+        # Save Prediction results
+        for result in results:
+            label = result.boxes.xyxy
+            if label.numel() != 0:
+                img_path = result.path
+                root, _ = os.path.splitext(img_path)
+                name = os.path.basename(root)
+                label_path = os.path.join(output_dir, name + ".pt")
+                if not os.path.isfile(label_path):
+                    torch.save(label, label_path)
+                writer.writerow([img_path, label_path])
+            else:
+                continue
 
     print("---------------YOLO DETECTION DONE---------------")
+    time.sleep(10)
