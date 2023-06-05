@@ -8,6 +8,9 @@ from PIL import Image
 import os
 from multiprocessing import Pool
 import concurrent.futures
+import sys
+
+sys.path.append("..")
 
 
 # Downsample all images in the input_dir

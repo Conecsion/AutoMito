@@ -6,6 +6,9 @@ import os
 from multiprocessing import Pool
 import concurrent.futures
 import time
+import sys
+
+sys.path.append("..")
 
 
 # Convert all TIFF images in the input_dir to PNG format or vice versa.

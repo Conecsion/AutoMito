@@ -14,6 +14,9 @@ try:
     set_start_method('spawn')
 except RuntimeError:
     pass
+import sys
+
+sys.path.append("..")
 
 
 class SamDataset(Dataset):

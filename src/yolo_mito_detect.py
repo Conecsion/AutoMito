@@ -7,6 +7,9 @@ import torch
 import time
 import torchvision.transforms as transforms
 import csv
+import sys
+
+sys.path.append("..")
 
 
 def yolo_mito_detect(device='0,1,2,3',

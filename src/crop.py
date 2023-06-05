@@ -6,13 +6,16 @@ import os
 from multiprocessing import Pool
 import concurrent.futures
 import time
+import sys
+
+sys.path.append("..")
 
 
-def crop(size=1024, input_dir='input', output_dir="output/cropped_images"):
+def crop(size=512, input_dir='input', output_dir="tmp/crop"):
     os.makedirs(output_dir, exist_ok=True)
     if os.listdir(output_dir):
         print(
-            "The Output directory of cropping is not empty. Skipping Cropping."
+            "The Output directory of cropping is not empty. Cropping will be skipped."
         )
         time.sleep(0.5)
     else:
@@ -31,10 +34,12 @@ def crop(size=1024, input_dir='input', output_dir="output/cropped_images"):
 
 def crop_one(img_name, output_dir, size):
     img = Image.open(img_name)
+    print(img)
     width, height = img.size
     # Expand the image to the integer multiple of cropped size
     expanded_width = (width // size + 1) * size
     expanded_height = (height // size + 1) * size
+    print(expanded_height)
     pad_width = (expanded_width - width) // 2
     pad_height = (expanded_height - height) // 2
     expanded_img = Image.new("RGB", (expanded_width, expanded_height), "black")
@@ -45,5 +50,6 @@ def crop_one(img_name, output_dir, size):
             area = (j, i, j + size, i + size)
             cropped_img = expanded_img.crop(area)
             filename = os.path.splitext(os.path.basename(img.filename))[0]
-            cropped_img.save(
-                f"{output_dir}/{filename}_{int(i/size)}_{int(j/size)}.tif")
+            filename = os.path.join(
+                output_dir, f"{filename}_{int(i/size)}_{int(j/size)}.tif")
+            cropped_img.save(filename)

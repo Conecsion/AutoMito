@@ -1,65 +1,51 @@
-from crop import crop
-from yolo_mito_detect import yolo_mito_detect
-from downsample import downsample
-from format_convert import format_convert
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import os
-import sys
-
-from torch.utils.data import IterableDataset, DataLoader
-import torchvision.transforms as transforms
 import torch
+from src.crop import crop
+from src.yolo_mito_detect import yolo_mito_detect
+from src.sam_mito_segmentation import sam_mito_segmentation
+import argparse
 
-import matplotlib.pyplot as plt
+GPU_COUNTS = torch.cuda.device_count()
+default_gpu_ids = ",".join(str(i) for i in range(GPU_COUNTS))
 
-from segment_anything import sam_model_registry, SamPredictor
+parser = argparse.ArgumentParser(
+    prog="YoSAM",
+    description="Cooperate YOLOv8 and SAM to segment target object from images"
+)
+parser.add_argument('--input',
+                    default='input',
+                    help="Path to the directory of input images")
+parser.add_argument('--output',
+                    default='output',
+                    help='Path to the directory of output masks')
+parser.add_argument(
+    '--gpu_ids',
+    default=default_gpu_ids,
+    help="The GPU used to detect and segment. Default to use all available GPUs"
+)
+parser.add_argument("--crop_size", type=int, default=512)
+parser.add_argument("--yolo_model", default="model/yolo_mito.pt")
+parser.add_argument("--sam_model", default="model/sam_vit_h_4b8939.pth")
+parser.add_argument("--sam_type", default="vit_h")
+parser.add_argument("--sam_batch_size", type=int, default=3)
 
-sam_checkpoint = "model/sam_vit_h_4b8939.pth"
-model_type = "vit_h"
+args = parser.parse_args()
 
-size = 512
-device = "cuda:0"
-
-sam = sam_model_registry[model_type](checkpoint=sam_checkpoint)
-sam.to(device=device)
-predictor = SamPredictor(sam)
-
-
-class GeneratorDataset(IterableDataset):
-
-    def __init__(self, generator, batch_size):
-        self.generator = generator
-        self.batch_size = batch_size
-
-    def __iter__(self):
-        batch = []
-        for x in self.generator:
-            batch.append(x)
-            if len(batch) == self.batch_size:
-                yield batch
-                batch = []
-        # yield the last incomplete batch if any
-        if batch:
-            yield batch
-
-
-def plot_tensor(tensor):
-    tensor = tensor.permute(1, 2, 0)
-    plt.imshow(tensor)
-    plt.show()
-
+# These directories will be created if not present
+CROP_OUTPUT = 'tmp/crop'
+DOWNSAMPLE_OUTPUT = 'tmp/downsample'
+YOLO_OUTPUT = "tmp/yolo"
 
 if __name__ == "__main__":
-    crop(size)
-    results = yolo_mito_detect('0', size, "model/yolo_mito.pt")
+    # Crop all input images into CROP_SIZE smaller images
+    crop(args.crop_size, args.input, CROP_OUTPUT)
 
-    #  batched_input = [
-    #  dict(
-    #  zip(("image", "boxes", "original_size"),
-    #  (result[0].to("cuda"), result[1],
-    #  result[0].shape[1:3]))) for result in results
-    #  ]
+    # Use YOLOv8 model to generate detection boxes for target. Here the model is trained to detect mitochondria.
+    yolo_mito_detect(args.gpu_ids, args.crop_size, args.yolo_model,
+                     CROP_OUTPUT, YOLO_OUTPUT)
 
-    #  batched_output = sam(batched_input, multimask_output=False)
-
-    BATCH_SIZE = 4
+    # Use Segment Anything Model (SAM) to generate from the YOLOv8 detection boxes
+    sam_mito_segmentation()
