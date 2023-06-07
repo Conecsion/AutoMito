@@ -7,6 +7,7 @@ model/
 input/
 output/
 raw/
+tmp/
 
 
 

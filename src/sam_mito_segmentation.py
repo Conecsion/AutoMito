@@ -5,9 +5,8 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 from torchvision.transforms import ToTensor, ToPILImage
 from PIL import Image
-from segment_anything import sam_model_registry, SamPredictor
+from segment_anything import sam_model_registry
 import pandas as pd
-import sys
 
 # Import DDP related packages
 import torch.distributed as dist
@@ -78,12 +77,15 @@ def ddp(rank, world_size, batch_size, input_dir, output_dir, sam_checkpoint,
         batched_imgname = batched_input[1]
         for i in range(len(batched_output)):
             img_name = batched_imgname[i]
-            print(f'Segmenting {img_name}')
-            masks = batched_output[i]['masks']
-            whole_mask = torch.sum(masks, dim=0, dtype=bool).to(torch.uint8)
-            whole_mask = 255 * whole_mask
-            mask_img = ToPILImage()(whole_mask)
-            mask_img.save(os.path.join(output_dir, f'{img_name}_mask.tif'))
+            save_path = (os.path.join(output_dir, f'{img_name}_mask.tif'))
+            if not os.path.isfile(save_path):
+                print(f'Segmenting {img_name}')
+                masks = batched_output[i]['masks']
+                whole_mask = torch.sum(masks, dim=0,
+                                       dtype=bool).to(torch.uint8)
+                whole_mask = 255 * whole_mask
+                mask_img = ToPILImage()(whole_mask)
+                mask_img.save(save_path)
 
     cleanup()
 
@@ -92,25 +94,17 @@ def cleanup():
     dist.destroy_process_group()
 
 
-def save_masks(masks):
-    pass
-
-
 def sam_mito_segmentation(gpu_ids='0,1,2,3',
                           batch_size=3,
                           input_dir="tmp/yolo",
-                          output_dir="output",
+                          output_dir="tmp/seg_crop",
                           sam_checkpoint="model/sam_vit_h_4b8939.pth",
                           model_type="vit_h"):
+    os.makedirs(output_dir, exist_ok=True)
     world_size = len(gpu_ids.split(','))
     os.environ["CUDA_VISIBLE_DIVICES"] = gpu_ids
-    queue = mp.Queue()
     mp.spawn(ddp,
              args=(world_size, batch_size, input_dir, output_dir,
                    sam_checkpoint, model_type),
              nprocs=world_size,
              join=True)
-
-
-#  if __name__ == "__main__":
-#  sam_mito_segmentation('1,2,3')
