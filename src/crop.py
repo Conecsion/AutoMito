@@ -26,6 +26,7 @@ def crop(size=512, input_dir='input', output_dir="tmp/crop"):
 
 
 def crop_one(img_name, output_dir, size):
+    # Read image as grayscale
     img = Image.open(img_name)
     width, height = img.size
     # Expand the image to the integer multiple of cropped size
@@ -44,4 +45,5 @@ def crop_one(img_name, output_dir, size):
             if not os.path.isfile(filename):
                 area = (j, i, j + size, i + size)
                 cropped_img = expanded_img.crop(area)
+                # PIL Image automatically save the image as RGB
                 cropped_img.save(filename)

@@ -3,12 +3,10 @@ import os
 from PIL import Image
 import torch.multiprocessing as mp
 
-
-def fn(rank, args):
-    print(rank)
-    print(args)
-
-
 if __name__ == "__main__":
-    args = ("hello", "world")
-    mp.spawn(fn, args=(args, ), nprocs=1)
+    raw = Image.open("input/Embryo0324.tif")
+    crop = Image.open("tmp/crop/Embryo0324_10_10.tif")
+    print(raw.mode)
+    print(crop.mode)
+    convert = crop.convert("L")
+    print(convert.mode)
