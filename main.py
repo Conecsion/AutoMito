@@ -46,7 +46,7 @@ args = parser.parse_args()
 CROP_OUTPUT = os.path.join(args.cache_dir, "crop")
 DOWNSAMPLE_OUTPUT = os.path.join(args.cache_dir, "downsample")
 YOLO_OUTPUT = os.path.join(args.cache_dir, "yolo")
-SAM_OUTPUT = os.path.join(args.cache_dir, "crop")
+SAM_OUTPUT = os.path.join(args.cache_dir, "sam")
 
 if __name__ == "__main__":
     # Crop all input images into CROP_SIZE smaller images
@@ -57,8 +57,9 @@ if __name__ == "__main__":
     #  CROP_OUTPUT, YOLO_OUTPUT)
 
     # Use Segment Anything Model (SAM) to generate from the YOLOv8 detection boxes
-    sam_mito_segmentation(args.gpu_ids, args.sam_batch_size, YOLO_OUTPUT,
-                          SAM_OUTPUT, args.sam_checkpoint, args.sam_type)
+    #  sam_mito_segmentation(args.gpu_ids, args.sam_batch_size, YOLO_OUTPUT,
+    #  SAM_OUTPUT, args.sam_checkpoint, args.sam_type)
 
-    # Merge cropped images and masks
-    merge(args.crop_size, CROP_OUTPUT, SAM_OUTPUT, args.output)
+    #  Merge cropped images and masks
+    merge(args.crop_size, args.input, args.output, CROP_OUTPUT, YOLO_OUTPUT,
+          SAM_OUTPUT)
