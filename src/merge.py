@@ -6,6 +6,8 @@
 # The raw images have been padded while cropping, thus need to be re-merged too
 
 from PIL import Image
+
+Image.MAX_IMAGE_PIXELS = None
 import os
 import concurrent.futures
 import glob
@@ -29,13 +31,21 @@ def getOnlyname(wholename):
     return onlyname
 
 
+def chunknizer(mylist, chunk_size):
+    chunk_list = []
+    for i in range(0, len(mylist), chunk_size):
+        chunk = mylist[i:i + chunk_size]
+        chunk_list.append(chunk)
+
+    return chunk_list
+
+
 # Generate empty dark mask images for the patches which have no detection
 def generate_one_blank_mask(one_mask_path, crop_size):
     if not os.path.isfile(one_mask_path):
-        print(f'Generating blank mask for {getOnlyname(one_mask_path)}')
         blank_mask = Image.new('L', (crop_size, crop_size), color=0)
         blank_mask.save(one_mask_path)
-        print('Generation of blank mask done')
+        print(f'Generation of {getOnlyname(one_mask_path)} blank mask done')
 
 
 def generate_blank_masks(cropped_img_path, mask_path, crop_size):
@@ -44,24 +54,30 @@ def generate_blank_masks(cropped_img_path, mask_path, crop_size):
         onlyname = getOnlyname(s)
         mask = os.path.join(mask_path, f'{onlyname}_mask.tif')
         masks.append(mask)
-    with concurrent.futures.ProcessPoolExecutor() as mask_gen_executor:
-        mask_gen_executor.map(generate_one_blank_mask, masks,
-                              [crop_size] * len(masks))
-        print('Blank masks generation done')
+
+    chunk_masks_list = chunknizer(masks, 10000)
+    for masks in chunk_masks_list:
+        with concurrent.futures.ProcessPoolExecutor() as mask_gen_executor:
+            mask_gen_executor.map(generate_one_blank_mask, masks,
+                                  [crop_size] * len(masks))
+    print('Blank masks generation done')
 
 
-def merge_one(input_img, cropped_img_path, mask_path, crop_size):
+def merge_one(input_img, cropped_img_path, mask_path, crop_size,
+              img_output_path, mask_output_path):
     img_name = getOnlyname(input_img)
-    cropped_img_list = glob.glob(os.path.join(cropped_img_path,
-                                              f"{img_name}_"))
-    mask_list = glob.glob(os.path.join(mask_path, f"{img_name}_"))
+    cropped_img_list = glob.glob(
+        os.path.join(cropped_img_path, f"{img_name}_*"))
+    mask_list = glob.glob(os.path.join(mask_path, f"{img_name}_*"))
 
     img_coord_list = []
     for s in cropped_img_list:
         img_coord_list.append(parse_numbers(s, 'img'))
+
     mask_coord_list = []
     for s in mask_list:
         mask_coord_list.append(parse_numbers(s, 'mask'))
+
     if len(img_coord_list) != len(mask_coord_list):
         print(f'ERROR: {img_name} cropped images and masks not match')
         return 0
@@ -79,6 +95,13 @@ def merge_one(input_img, cropped_img_path, mask_path, crop_size):
             merged_img.paste(img, (img_x, img_y))
             merged_mask.paste(mask, (mask_x, mask_y))
 
+        merged_img = merged_img.convert('L')
+        merged_img.save(
+            os.path.join(img_output_path, f'{img_name}_remerge.tif'))
+        merged_mask.save(os.path.join(mask_output_path,
+                                      f'{img_name}_mask.tif'))
+        print(f'{img_name} merged')
+
 
 def merge(crop_size=512,
           input_path="input",
@@ -93,19 +116,17 @@ def merge(crop_size=512,
 
     # Get cropped images list and masks list
     input_imgs = [os.path.join(input_path, s) for s in os.listdir(input_path)]
-    img_num = len(input_imgs)
+    chunk_input_imgs = chunknizer(input_imgs, 100)
+    img_num = len(chunk_input_imgs)
     cropped_img_num = len(os.listdir(cropped_img_path))
     mask_num = len(os.listdir(mask_path))
     if cropped_img_num != mask_num:
         print('ERROR: The number of cropped images and masks is not match')
     else:
-        print(input_imgs)
-        print(cropped_img_path)
-        print(mask_path)
         with concurrent.futures.ProcessPoolExecutor() as executor:
-            executor.map(merge_one, input_imgs, img_num * [cropped_img_path],
-                         [mask_path] * img_num, [crop_size] * img_num)
+            executor.map(merge_one, chunk_input_imgs,
+                         img_num * [cropped_img_path], [mask_path] * img_num,
+                         [crop_size] * img_num)
 
 
 #  generate_one_blank_mask("tmp/Embryo315_13_1_mask.tif", 512)
-#  generate_blank_masks("tmp/crop", "tmp/sam", 512)

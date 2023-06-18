@@ -6,7 +6,7 @@ import torch
 from src.crop import crop
 from src.yolo_mito_detect import yolo_mito_detect
 from src.sam_mito_segmentation import sam_mito_segmentation
-from src.merge import merge
+from src.merge import merge, merge_one, generate_blank_masks
 import argparse
 
 GPU_COUNTS = torch.cuda.device_count()
@@ -63,3 +63,5 @@ if __name__ == "__main__":
     #  Merge cropped images and masks
     merge(args.crop_size, args.input, args.output, CROP_OUTPUT, YOLO_OUTPUT,
           SAM_OUTPUT)
+
+    # Test
