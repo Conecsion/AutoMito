@@ -108,25 +108,35 @@ def merge(crop_size=512,
           output_path="output",
           cropped_img_path="tmp/crop",
           yolo_path="tmp/yolo",
-          mask_path="tmp/sam"):
+          mask_path="tmp/sam",
+          chunk_size=100):
 
-    generate_blank_masks(cropped_img_path, mask_path, crop_size)
+    #  generate_blank_masks(cropped_img_path, mask_path, crop_size)
     os.makedirs(os.path.join(output_path, "images"), exist_ok=True)
     os.makedirs(os.path.join(output_path, "masks"), exist_ok=True)
+    img_output_path = os.path.join(output_path, 'images')
+    mask_output_path = os.path.join(output_path, 'masks')
 
     # Get cropped images list and masks list
     input_imgs = [os.path.join(input_path, s) for s in os.listdir(input_path)]
-    chunk_input_imgs = chunknizer(input_imgs, 100)
-    img_num = len(chunk_input_imgs)
+    chunk_input_imgs = chunknizer(input_imgs, chunk_size)
     cropped_img_num = len(os.listdir(cropped_img_path))
     mask_num = len(os.listdir(mask_path))
     if cropped_img_num != mask_num:
         print('ERROR: The number of cropped images and masks is not match')
     else:
-        with concurrent.futures.ProcessPoolExecutor() as executor:
-            executor.map(merge_one, chunk_input_imgs,
-                         img_num * [cropped_img_path], [mask_path] * img_num,
-                         [crop_size] * img_num)
+        for imgs in chunk_input_imgs:
+            with concurrent.futures.ProcessPoolExecutor() as executor:
+                img_num = len(imgs)
+                executor.map(
+                    merge_one,
+                    imgs,
+                    img_num * [cropped_img_path],
+                    [mask_path] * img_num,
+                    [crop_size] * img_num,
+                    [img_output_path] * img_num,
+                    [mask_output_path] * img_num,
+                )
 
 
 #  generate_one_blank_mask("tmp/Embryo315_13_1_mask.tif", 512)

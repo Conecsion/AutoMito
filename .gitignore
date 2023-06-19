@@ -8,6 +8,8 @@ input/
 output/
 raw/
 tmp/
+runs/
+label-studio/
 
 
 

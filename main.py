@@ -7,6 +7,7 @@ from src.crop import crop
 from src.yolo_mito_detect import yolo_mito_detect
 from src.sam_mito_segmentation import sam_mito_segmentation
 from src.merge import merge, merge_one, generate_blank_masks
+from src.downsample import downsample, upsample
 import argparse
 
 GPU_COUNTS = torch.cuda.device_count()
@@ -40,12 +41,13 @@ parser.add_argument("--sam_type", default="vit_h")
 # The maximum batch size of SAM inference is 3 for each GPU, according to former tests
 parser.add_argument("--sam_batch_size", type=int, default=3)
 
+parser.add_argument('--yolo_output', default='tmp/yolo')
+
 args = parser.parse_args()
 
 # These directories will be created if not present
 CROP_OUTPUT = os.path.join(args.cache_dir, "crop")
 DOWNSAMPLE_OUTPUT = os.path.join(args.cache_dir, "downsample")
-YOLO_OUTPUT = os.path.join(args.cache_dir, "yolo")
 SAM_OUTPUT = os.path.join(args.cache_dir, "sam")
 
 if __name__ == "__main__":
@@ -54,14 +56,22 @@ if __name__ == "__main__":
 
     # Use YOLOv8 model to generate detection boxes for target. Here the model is trained to detect mitochondria.
     #  yolo_mito_detect(args.gpu_ids, args.crop_size, args.yolo_model,
-    #  CROP_OUTPUT, YOLO_OUTPUT)
+    #  CROP_OUTPUT, args.yolo_output)
 
     # Use Segment Anything Model (SAM) to generate from the YOLOv8 detection boxes
-    #  sam_mito_segmentation(args.gpu_ids, args.sam_batch_size, YOLO_OUTPUT,
+    #  sam_mito_segmentation(args.gpu_ids, args.sam_batch_size, args.yolo_output,
     #  SAM_OUTPUT, args.sam_checkpoint, args.sam_type)
 
     #  Merge cropped images and masks
-    merge(args.crop_size, args.input, args.output, CROP_OUTPUT, YOLO_OUTPUT,
-          SAM_OUTPUT)
+    #  merge(args.crop_size, args.input, args.output, CROP_OUTPUT, args.yolo_output,
+    #  SAM_OUTPUT)
 
-    # Test
+    # Downsample original images for cell detection
+    #  downsample(8, 'input', 'tmp/downsampled_img', 'tif')
+    # Detect Cells with YOLO
+    #  yolo_mito_detect(args.gpu_ids, (1258, 1436), 'model/cell_det_yolov8x.pt',
+    #  'tmp/downsampled_img', 'tmp/cell_detection', 3, 16)
+
+    # Segment Cells with SAM using YOLO detection boxes
+    sam_mito_segmentation(args.gpu_ids, 3, 'tmp/cell_detection',
+                          'output/cell_segementation')
