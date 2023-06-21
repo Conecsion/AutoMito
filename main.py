@@ -7,7 +7,7 @@ from src.crop import crop
 from src.yolo_mito_detect import yolo_mito_detect
 from src.sam_mito_segmentation import sam_mito_segmentation
 from src.merge import merge, merge_one, generate_blank_masks
-from src.downsample import downsample, upsample
+from src.downsample import downsample, upsample_masks
 import argparse
 
 GPU_COUNTS = torch.cuda.device_count()
@@ -73,5 +73,8 @@ if __name__ == "__main__":
     #  'tmp/downsampled_img', 'tmp/cell_detection', 3, 16)
 
     # Segment Cells with SAM using YOLO detection boxes
-    sam_mito_segmentation(args.gpu_ids, 3, 'tmp/cell_detection',
-                          'output/cell_segementation')
+    #  sam_mito_segmentation(args.gpu_ids, 3, 'tmp/cell_detection',
+    #  'tmp/cell_segementation_downsampled')
+
+    # Upsample cell masks
+    upsample_masks('output/cell_segementation_2', 'input', 'output/cell_masks')
