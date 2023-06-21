@@ -90,7 +90,3 @@ def upsample_masks(input_path='tmp/downsampled_cell_mask',
             original_image_list,
         )
     print('---------------UPSAMPLING DONE---------------')
-
-
-if __name__ == '__main__':
-    downsample()
