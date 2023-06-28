@@ -3,10 +3,8 @@ import os
 from PIL import Image
 import torch.multiprocessing as mp
 
+print(os.getcwd())
+from format_convert import format_convert
+
 if __name__ == "__main__":
-    raw = Image.open("input/Embryo0324.tif")
-    crop = Image.open("tmp/crop/Embryo0324_10_10.tif")
-    print(raw.mode)
-    print(crop.mode)
-    convert = crop.convert("L")
-    print(convert.mode)
+    format_convert('project/project3/crop/', 'project/png/')

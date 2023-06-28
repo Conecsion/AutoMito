@@ -8,6 +8,7 @@ from src.yolo_mito_detect import yolo_mito_detect
 from src.sam_mito_segmentation import sam_mito_segmentation
 from src.merge import merge, merge_one, generate_blank_masks
 from src.downsample import downsample, upsample_masks
+from src.project_creator import project_creator
 import argparse
 
 GPU_COUNTS = torch.cuda.device_count()
@@ -22,9 +23,9 @@ parser.add_argument('--input',
                     default='input',
                     help="Path to the directory of input images")
 # Directory of final merged images and masks
-parser.add_argument('--output',
-                    default='output',
-                    help='Path to the directory of output masks')
+parser.add_argument('--path',
+                    default='.',
+                    help='Path to the directory of output results')
 # Directory of intermediate files, including cropped images, YOLO prediction results, SAM segmentations, downsampled images and so on
 parser.add_argument("--cache_dir", default="tmp")
 # Which GPU(s) to use. e.g. --gpu_ids "0,1" use the first two GPUs
@@ -42,17 +43,22 @@ parser.add_argument("--sam_type", default="vit_h")
 parser.add_argument("--sam_batch_size", type=int, default=3)
 
 parser.add_argument('--yolo_output', default='tmp/yolo')
+parser.add_argument('--exist_ok', action='store_true')
 
 args = parser.parse_args()
 
 # These directories will be created if not present
-CROP_OUTPUT = os.path.join(args.cache_dir, "crop")
-DOWNSAMPLE_OUTPUT = os.path.join(args.cache_dir, "downsample")
-SAM_OUTPUT = os.path.join(args.cache_dir, "sam")
+project_path = project_creator(args.path, exist_ok=args.exist_ok)
+#  CROP_OUTPUT = os.path.join(project_path, "crop")
+#  DOWNSAMPLE_OUTPUT = os.path.join(project_path, "downsample")
+#  DETECTION_OUTPUT = os.path.join(project_path, 'detection')
+#  SEGMENTATION_OUTPUT = os.path.join(project_path, "segmentation")
+#  OUTPUT = os.path.join(project_path, 'output')
 
 if __name__ == "__main__":
     # Crop all input images into CROP_SIZE smaller images
     #  crop(args.crop_size, args.input, CROP_OUTPUT)
+    crop(args.crop_size, args.input, os.path.join(project_path, 'crop'))
 
     # Use YOLOv8 model to generate detection boxes for target. Here the model is trained to detect mitochondria.
     #  yolo_mito_detect(args.gpu_ids, args.crop_size, args.yolo_model,
@@ -77,4 +83,4 @@ if __name__ == "__main__":
     #  'tmp/cell_segementation_downsampled')
 
     # Upsample cell masks
-    upsample_masks('output/cell_segementation_2', 'input', 'output/cell_masks')
+    #  upsample_masks('output/cell_segementation_2', 'input', 'output/cell_masks')
