@@ -2,12 +2,17 @@
 # -*- coding: utf-8 -*-
 
 import os
+import cv2
 from ultralytics import YOLO
 import torch
 import time
-import torchvision.transforms as transforms
 import csv
 import sys
+from torch.utils.data import Dataset, DataLoader
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
+import torch.multiprocessing as mp
+import os
 
 sys.path.append("..")
 
@@ -31,7 +36,7 @@ def yolo_mito_detect(
                 conf=conf, \
                 line_width=1, \
                 show_labels=False, \
-                imgsz=size, \
+                # imgsz=size, \
                 device=device, \
                 max_det=max_det, \
                 stream=True,
@@ -60,3 +65,24 @@ def yolo_mito_detect(
 
     print("---------------YOLO DETECTION DONE---------------")
     time.sleep(10)
+
+
+class Yolo_det_dataset(Dataset):
+
+    def __init__(self, image_dir, transform=None):
+        self.image_dir = image_dir
+        self.image_path = []
+        for f in os.listdir(self.image_dir):
+            self.image_path.append(os.path.join(self.image_dir, f))
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.image_path)
+
+    def __getitem__(self, idx):
+        image = self.image_path[idx]
+        image = cv2.imread(image)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        if self.transform:
+            image = self.transform(image)
+        return image

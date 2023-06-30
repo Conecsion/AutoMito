@@ -36,7 +36,7 @@ parser.add_argument(
 )
 
 parser.add_argument("--crop_size", type=int, default=512)
-parser.add_argument("--yolo_model", default="model/yolo_mito.pt")
+parser.add_argument("--yolo_model", default="./model/mito_det_yolov8n.pt")
 parser.add_argument("--sam_checkpoint", default="model/sam_vit_h_4b8939.pth")
 parser.add_argument("--sam_type", default="vit_h")
 # The maximum batch size of SAM inference is 3 for each GPU, according to former tests
@@ -58,11 +58,10 @@ project_path = project_creator(args.path, exist_ok=args.exist_ok)
 if __name__ == "__main__":
     # Crop all input images into CROP_SIZE smaller images
     #  crop(args.crop_size, args.input, CROP_OUTPUT)
-    crop(args.crop_size, args.input, os.path.join(project_path, 'crop'))
+    # crop(args.crop_size, args.input, os.path.join(project_path, 'crop'))
 
     # Use YOLOv8 model to generate detection boxes for target. Here the model is trained to detect mitochondria.
-    #  yolo_mito_detect(args.gpu_ids, args.crop_size, args.yolo_model,
-    #  CROP_OUTPUT, args.yolo_output)
+     yolo_mito_detect(args.gpu_ids, args.crop_size, args.yolo_model, 'input', 'whole_img_yolo')
 
     # Use Segment Anything Model (SAM) to generate from the YOLOv8 detection boxes
     #  sam_mito_segmentation(args.gpu_ids, args.sam_batch_size, args.yolo_output,
