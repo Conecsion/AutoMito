@@ -137,7 +137,7 @@ def sam_mito_segmentation(gpu_ids='0,1,2,3',
                           model_type="vit_h"):
     os.makedirs(output_path, exist_ok=True)
     world_size = len(gpu_ids.split(','))
-    os.environ["CUDA_VISIBLE_DIVICES"] = gpu_ids
+    os.environ["CUDA_VISIBLE_DEVICES"] = gpu_ids
     mp.spawn(
         ddp,
         args=(

@@ -61,7 +61,15 @@ if __name__ == "__main__":
     # crop(args.crop_size, args.input, os.path.join(project_path, 'crop'))
 
     # Use YOLOv8 model to generate detection boxes for target. Here the model is trained to detect mitochondria.
-     yolo_mito_detect(args.gpu_ids, args.crop_size, args.yolo_model, 'input', 'whole_img_yolo')
+    yolo_mito_detect(
+        '/data/shaodi/DeepAi/yolo/DeepAI_Mito_Det/230706/weights/best.pt',  # YOLO model path
+        '/data/shaodi/DeepAi/1220_8_whole',  # Input image path
+        '/data/shaodi/DeepAi/1220_8_whole/index.csv',  # Index csv file
+        '/data/shaodi/DeepAi/output',  # Output path
+        '0,1,2',  # GPU ids
+        2,  # Batch size
+        (2048, 2048),  # Image Size
+    )
 
     # Use Segment Anything Model (SAM) to generate from the YOLOv8 detection boxes
     #  sam_mito_segmentation(args.gpu_ids, args.sam_batch_size, args.yolo_output,
@@ -83,3 +91,4 @@ if __name__ == "__main__":
 
     # Upsample cell masks
     #  upsample_masks('output/cell_segementation_2', 'input', 'output/cell_masks')
+    pass
